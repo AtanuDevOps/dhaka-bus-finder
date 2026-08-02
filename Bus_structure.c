@@ -179,7 +179,49 @@ int main()
         }
         else if (choice == 5)
         {
-            //feature 5
+            //feature 5 - Send SOS
+
+            if (selectedBus == -1)
+            {
+                printf("\nYou haven't searched for a bus yet.\n");
+                printf("Please use 'Find Bus' first so we know which bus you are on.\n");
+            }
+            else
+            {
+                int sos;
+
+                printf("\n============================================\n");
+                printf(" Government Passenger Safety Service\n");
+                printf("============================================\n");
+                printf("Do you want to send an Emergency SOS?\n");
+                printf("1. Yes\n");
+                printf("2. No\n");
+                printf("Enter Choice: ");
+                scanf("%d", &sos);
+                clearInputBuffer();
+
+                if (sos == 1)
+                {
+                    printf("\n============================================\n");
+                    printf("        EMERGENCY SOS ACTIVATED\n");
+                    printf("============================================\n");
+                    printf("Emergency Alert Sent Successfully!\n\n");
+
+                    printf("Bus           : %s\n", company[selectedBus]);
+
+                    printf("\nEmergency Helpline : 999\n");
+                    printf("Nearest Police Control Room has been notified.\n");
+                    printf("Women Safety Cell has also been notified.\n");
+                    printf("Stay Calm. Help is on the way.\n");
+                    printf("============================================\n");
+                }
+                else
+                {
+                    printf("\n============================================\n");
+                    printf("No Emergency Alert Sent.\n");
+                    printf("============================================\n");
+                }
+            }
             
             printf("\nPress Enter to go back to the main menu..");
             getchar();
