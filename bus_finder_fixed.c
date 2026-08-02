@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -22,45 +21,34 @@ int main()
 
     char student;
 
-    char company[companies][length]=
+    char company[companies][length];
+    char route[companies][stops][length];
+    int totalstops[companies];
+
+    /* ---------- Read data from file instead of hardcoding it ---------- */
+
+    FILE *fp = fopen("bus_data.txt", "r");
+
+    if (fp == NULL)
     {
-        "Achim Paribahan",
-        "Active Paribahan",
-        "Agradut",
-        "Airport Bangabandhu Avenue Paribahan"
-    };
+        printf("Could not open bus_data.txt\n");
+        return 1;
+    }
 
-    char route[companies][stops][length]=
+    for (int i = 0; i < companies; i++)
     {
-        {"Gabtoli", "Technical", "Ansar Camp", "Mirpur 1", "Sony Cinema Hall", "Mirpur 2",
-        "Mirpur 10","Mirpur 11","Purobi","Kalshi","ECB Square","MES","Shewra",
-        "Kuril Bishwa Road","Jamuna Future Park","Bashundhara","Nadda","Notun Bazar","Bashtola",
-        "Shahjadpur","Uttar Badda","Badda","Madhya","Badda","Merul Badda","Rampura Bridge",
-        "Banasree","Demra Staff Quarter","",""},
+        fscanf(fp, " %[^\n]", company[i]);
+        fscanf(fp, "%d", &totalstops[i]);
 
-        {"Shia Masjid","Adabor","Shyamoli","Technical",
-        "Ansar Camp","Mirpur 1","Sony Cinema Hall","Mirpur 2",
-        "Mirpur 10","Mirpur 11","Purobi","Kalshi",
-        "ECB Square","MES","Shewrapara","Kuril Bishwa Road","Khilkhet","Airport","Jashimuddin",
-        "Rajlakshmi","Azampur","House Building","Abdullahpur","","","","","",""},
+        for (int j = 0; j < totalstops[i]; j++)
+        {
+            fscanf(fp, " %[^\n]", route[i][j]);
+        }
+    }
 
-        {"Savar","Hemayetpur","Amin Bazar","Gabtoli",
-        "Technical","Kallyanpur","Shyamoli",
-        "Shishu Mela","Agargaon","Zia Uddyan",
-        "Bijoy Sarani","Jahangir Gate","Mohakhali","Wireless","Gulshan 1",
-        "Badda Link Road","Bashtola","Shahjadpur","Uttar Badda","Notun Bazar",
-        "","","","","","","","",""},
+    fclose(fp);
 
-        {"Fulbaria","Golap Shah Mazar",
-        "GPO","Paltan","Press Club","High Court","Matsya Bhaban",
-        "Shahbag","Bangla Motor","Kawran Bazar",
-        "Farmgate","Bijoy Sarani","Jahangir Gate",
-        "Mohakhali","Chairman Bari",
-        "Sainik Club","Banani","Kakali","Staff Road","MES",
-        "Kurmitola","Shewra","Kuril Bishwa Road",
-        "Khilkhet","Airport","Jashimuddin",
-        "Rajlakshmi","House Building","Abdullahpur"}
-    };
+    /* -------------------------------------------------------------------- */
 
     printf("\n\n");
     printf("                ██████╗ ██╗   ██╗███████╗        ███████╗██╗███╗   ██╗██████╗ ███████╗██████╗ ██╗  ██╗\n");
@@ -69,84 +57,81 @@ int main()
     printf("                ██╔══██╗██║   ██║╚════██║        ██╔══╝  ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗ ██╔██╗ \n");
     printf("                ██████╔╝╚██████╔╝███████║███████╗██║     ██║██║ ╚████║██████╔╝███████╗██║  ██║██╔╝ ██╗\n");
     printf("                ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝\n");
-
-    int totalstops[companies]={27,23,20,29};
-
-    char from[length],to[length];
+    
+    char from[length], to[length];
 
     printf("\nWhere do you want to go?\n");
-    scanf(" %[^\n]",to);
+    scanf(" %[^\n]", to);
     clearInputBuffer();
 
-    printf("From where do you want to go %s?\n",to);
-    scanf(" %[^\n]",from);
+    printf("From where do you want to go %s?\n", to);
+    scanf(" %[^\n]", from);
     clearInputBuffer();
 
     printf("Are you a Student? (Y/N): ");
-    scanf(" %c",&student);
+    scanf(" %c", &student);
     clearInputBuffer();
 
     printf("\nAvailable Buses are:\n");
 
-    for(int i=0;i<companies;i++)
+    for (int i = 0; i < companies; i++)
     {
-        int fromIndex=-1;
-        int toIndex=-1;
+        int fromIndex = -1;
+        int toIndex = -1;
 
-        for(int j=0;j<totalstops[i];j++)
+        for (int j = 0; j < totalstops[i]; j++)
         {
-            if(strcmp(route[i][j],from)==0)
-                fromIndex=j;
+            if (strcmp(route[i][j], from) == 0)
+                fromIndex = j;
 
-            if(strcmp(route[i][j],to)==0)
-                toIndex=j;
+            if (strcmp(route[i][j], to) == 0)
+                toIndex = j;
         }
 
-        if(fromIndex!=-1 && toIndex!=-1)
+        if (fromIndex != -1 && toIndex != -1)
         {
-            flag=1;
-            selectedBus=i;
+            flag = 1;
+            selectedBus = i;
 
-            printf("\n%s\n",company[i]);
+            printf("\n%s\n", company[i]);
             printf("Route: ");
 
-            if(fromIndex<toIndex)
+            if (fromIndex < toIndex)
             {
-                fare=abs(toIndex-fromIndex)*5;
+                fare = abs(toIndex - fromIndex) * 5;
 
-                if(student=='Y'||student=='y')
-                    fare=fare/2;
+                if (student == 'Y' || student == 'y')
+                    fare = fare / 2;
 
-                for(int k=fromIndex;k<=toIndex;k++)
+                for (int k = fromIndex; k <= toIndex; k++)
                 {
-                    printf("%s",route[i][k]);
+                    printf("%s", route[i][k]);
 
-                    if(k!=toIndex)
+                    if (k != toIndex)
                         printf(" -> ");
                 }
             }
-
-            else if(fromIndex>toIndex)
+            else if (fromIndex > toIndex)
             {
-                fare=abs(fromIndex-toIndex)*5;
+                fare = abs(fromIndex - toIndex) * 5;
 
-                if(student=='Y'||student=='y')
-                    fare=fare/2;
+                if (student == 'Y' || student == 'y')
+                    fare = fare / 2;
 
-                for(int m=fromIndex;m>=toIndex;m--)
+                for (int m = fromIndex; m >= toIndex; m--)
                 {
-                    printf("%s",route[i][m]);
+                    printf("%s", route[i][m]);
 
-                    if(m!=toIndex)
+                    if (m != toIndex)
                         printf(" -> ");
                 }
             }
         }
     }
 
-    if(flag==1)
+    if (flag == 1)
     {
-        printf("\n\nFare : %d Taka\n",fare);
+        printf("\n\nFare : %d Taka\n", fare);
 
         int sos = 0;
         int validInput = 0;
@@ -158,14 +143,12 @@ int main()
         printf("1. Yes\n");
         printf("2. No\n");
 
-
-        while(!validInput)
+        while (!validInput)
         {
             printf("Enter Choice: ");
 
-            if(scanf("%d",&sos) != 1)
+            if (scanf("%d", &sos) != 1)
             {
-
                 printf("Invalid input. Please enter 1 or 2.\n");
                 clearInputBuffer();
                 continue;
@@ -173,7 +156,7 @@ int main()
 
             clearInputBuffer();
 
-            if(sos==1 || sos==2)
+            if (sos == 1 || sos == 2)
             {
                 validInput = 1;
             }
@@ -183,16 +166,16 @@ int main()
             }
         }
 
-        if(sos==1)
+        if (sos == 1)
         {
             printf("\n============================================\n");
             printf("        EMERGENCY SOS ACTIVATED\n");
             printf("============================================\n");
             printf("Emergency Alert Sent Successfully!\n\n");
 
-            printf("Bus           : %s\n",company[selectedBus]);
-            printf("From          : %s\n",from);
-            printf("Destination   : %s\n",to);
+            printf("Bus           : %s\n", company[selectedBus]);
+            printf("From          : %s\n", from);
+            printf("Destination   : %s\n", to);
 
             printf("\nEmergency Helpline : 999\n");
             printf("Nearest Police Control Room has been notified.\n");
@@ -200,7 +183,6 @@ int main()
             printf("Stay Calm. Help is on the way.\n");
             printf("============================================\n");
         }
-
         else
         {
             printf("\n============================================\n");
@@ -210,7 +192,6 @@ int main()
             printf("============================================\n");
         }
     }
-
     else
     {
         printf("\nNo Bus found in this Route.\n");
@@ -218,4 +199,3 @@ int main()
 
     return 0;
 }
-
