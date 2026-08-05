@@ -23,6 +23,29 @@ int main()
     char company[companies][length];
     char route[companies][stops][length];
     int totalstops[companies];
+    FILE *fp = fopen("bus_data.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("Could not open bus_data.txt\n");
+        return 1;
+    }
+
+    for (int i = 0; i < companies; i++)
+    {
+        fscanf(fp, " %[^\n]", company[i]);
+        fscanf(fp, "%d", &totalstops[i]);
+
+        for (int j = 0; j < totalstops[i]; j++)
+        {
+            fscanf(fp, " %[^\n]", route[i][j]);
+        }
+    }
+
+    fclose(fp);
+            
+    char from[length], to[length];
+
     
     printf("\n\n");
     printf("                ██████╗ ██╗   ██╗███████╗        ███████╗██╗███╗   ██╗██████╗ ███████╗██████╗ ██╗  ██╗\n");
@@ -47,28 +70,6 @@ int main()
 
         if (choice == 1) // feature 1
         {
-             FILE *fp = fopen("bus_data.txt", "r");
-
-            if (fp == NULL)
-            {
-                printf("Could not open bus_data.txt\n");
-                return 1;
-            }
-
-            for (int i = 0; i < companies; i++)
-            {
-                fscanf(fp, " %[^\n]", company[i]);
-                fscanf(fp, "%d", &totalstops[i]);
-
-                for (int j = 0; j < totalstops[i]; j++)
-                {
-                    fscanf(fp, " %[^\n]", route[i][j]);
-                }
-            }
-
-            fclose(fp);
-            
-            char from[length], to[length];
 
             printf("\nWhere do you want to go?\n");
             scanf(" %[^\n]", to);
