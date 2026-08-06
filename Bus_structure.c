@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
 
 #define length 50
 #define companies 4
@@ -9,6 +11,270 @@ void clearInputBuffer()
 {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
+}
+
+/* =========================================================
+   MD5 HASHING (written from the MD5 algorithm specification)
+   Used to hash owner passwords before saving them to a file,
+   so plain-text passwords are never stored on disk.
+   Note: this simple implementation assumes a little-endian
+   system (which covers normal Windows/PC machines).
+   ========================================================= */
+
+uint32_t leftrotate(uint32_t x, uint32_t c)
+{
+    return (x << c) | (x >> (32 - c));
+}
+
+void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest)
+{
+    /* per-round left-shift amounts, as defined by the MD5 algorithm */
+    uint32_t s[] = {
+        7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
+        5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
+        4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
+        6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
+    };
+
+    /* K constants: built from sin(), as defined by the MD5 algorithm,
+       instead of typing out 64 long magic numbers by hand */
+    static uint32_t K[64];
+    static int built = 0;
+
+    if (!built)
+    {
+        for (int i = 0; i < 64; i++)
+            K[i] = (uint32_t)(fabs(sin(i + 1)) * 4294967296.0);
+        built = 1;
+    }
+
+    uint32_t h0 = 0x67452301;
+    uint32_t h1 = 0xefcdab89;
+    uint32_t h2 = 0x98badcfe;
+    uint32_t h3 = 0x10325476;
+
+    /* pad the message so its length in bits is 448 (mod 512) */
+    size_t newLenBits;
+    for (newLenBits = initial_len * 8 + 1; newLenBits % 512 != 448; newLenBits++);
+    size_t newLen = newLenBits / 8;
+
+    uint8_t *msg = calloc(newLen + 8, 1);
+    memcpy(msg, initial_msg, initial_len);
+    msg[initial_len] = 0x80; /* append a single '1' bit */
+
+    uint32_t bitsLen = (uint32_t)(initial_len * 8);
+    memcpy(msg + newLen, &bitsLen, 4);
+
+    /* process the message in 512-bit (64-byte) chunks */
+    for (size_t offset = 0; offset < newLen; offset += 64)
+    {
+        uint32_t *w = (uint32_t *)(msg + offset);
+
+        uint32_t a = h0, b = h1, c = h2, d = h3;
+
+        for (uint32_t i = 0; i < 64; i++)
+        {
+            uint32_t f, g;
+
+            if (i < 16)
+            {
+                f = (b & c) | ((~b) & d);
+                g = i;
+            }
+            else if (i < 32)
+            {
+                f = (d & b) | ((~d) & c);
+                g = (5 * i + 1) % 16;
+            }
+            else if (i < 48)
+            {
+                f = b ^ c ^ d;
+                g = (3 * i + 5) % 16;
+            }
+            else
+            {
+                f = c ^ (b | (~d));
+                g = (7 * i) % 16;
+            }
+
+            uint32_t temp = d;
+            d = c;
+            c = b;
+            b = b + leftrotate(a + f + K[i] + w[g], s[i]);
+            a = temp;
+        }
+
+        h0 += a;
+        h1 += b;
+        h2 += c;
+        h3 += d;
+    }
+
+    free(msg);
+
+    memcpy(digest,      &h0, 4);
+    memcpy(digest + 4,  &h1, 4);
+    memcpy(digest + 8,  &h2, 4);
+    memcpy(digest + 12, &h3, 4);
+}
+
+/* Converts the 16-byte MD5 digest into a readable 32-character hex string */
+void md5ToHexString(uint8_t *digest, char *hexStr)
+{
+    for (int i = 0; i < 16; i++)
+        sprintf(hexStr + (i * 2), "%02x", digest[i]);
+
+    hexStr[32] = '\0';
+}
+
+/* Hashes a plain-text password and stores the result (32 hex chars) in hashOut */
+void hashPassword(const char *password, char *hashOut)
+{
+    uint8_t digest[16];
+    md5((const uint8_t *)password, strlen(password), digest);
+    md5ToHexString(digest, hashOut);
+}
+
+/* =========================================================
+   OWNER REGISTER / LOGIN SYSTEM
+   Stored in owners.txt as:  username  passwordHash  ownerName
+   ========================================================= */
+
+void registerOwner()
+{
+    char username[length], password[length], name[length];
+    char hashedPassword[33];
+
+    printf("\nChoose a username: ");
+    scanf("%s", username);
+
+    /* check if username is already taken */
+    FILE *checkFile = fopen("owners.txt", "r");
+    if (checkFile != NULL)
+    {
+        char existingUser[length], existingHash[33], existingName[length];
+
+        while (fscanf(checkFile, "%s %s", existingUser, existingHash) == 2)
+        {
+            fscanf(checkFile, " %[^\n]", existingName);
+
+            if (strcmp(existingUser, username) == 0)
+            {
+                printf("This username is already taken. Please try logging in instead.\n");
+                fclose(checkFile);
+                return;
+            }
+        }
+        fclose(checkFile);
+    }
+
+    printf("Choose a password: ");
+    scanf("%s", password);
+
+    printf("Enter your full name: ");
+    clearInputBuffer();
+    scanf(" %[^\n]", name);
+
+    hashPassword(password, hashedPassword);
+
+    FILE *fp = fopen("owners.txt", "a");
+    if (fp == NULL)
+    {
+        printf("Could not save your account. Please try again.\n");
+        return;
+    }
+
+    fprintf(fp, "%s %s %s\n", username, hashedPassword, name);
+    fclose(fp);
+
+    printf("\nAccount created successfully! You can now log in.\n");
+}
+
+/* Returns 1 and fills loggedInUser if login succeeds, otherwise returns 0 */
+int loginOwner(char *loggedInUser)
+{
+    char username[length], password[length];
+    char hashedPassword[33];
+
+    printf("\nUsername: ");
+    scanf("%s", username);
+
+    printf("Password: ");
+    scanf("%s", password);
+
+    hashPassword(password, hashedPassword);
+
+    FILE *fp = fopen("owners.txt", "r");
+    if (fp == NULL)
+    {
+        printf("No owner accounts found yet. Please register first.\n");
+        return 0;
+    }
+
+    char fileUser[length], fileHash[33], fileName[length];
+
+    while (fscanf(fp, "%s %s", fileUser, fileHash) == 2)
+    {
+        fscanf(fp, " %[^\n]", fileName);
+
+        if (strcmp(fileUser, username) == 0 && strcmp(fileHash, hashedPassword) == 0)
+        {
+            fclose(fp);
+            strcpy(loggedInUser, fileUser);
+            printf("\nLogin successful. Welcome, %s!\n", fileName);
+            return 1;
+        }
+    }
+
+    fclose(fp);
+    printf("Invalid username or password.\n");
+    return 0;
+}
+
+/* =========================================================
+   BUS REGISTRATION (saved by logged-in owners)
+   Stored in registered_buses.txt in a simple readable format
+   ========================================================= */
+
+void registerBusDetails(char *ownerUsername)
+{
+    char busNumber[length], driverName[length], driverContact[length];
+    char regDate[length], busType[length];
+
+    printf("\nEnter Bus Number (e.g. Dhaka Metro Ga 11-1234): ");
+    scanf(" %[^\n]", busNumber);
+
+    printf("Enter Driver Name: ");
+    scanf(" %[^\n]", driverName);
+
+    printf("Enter Driver Contact Number: ");
+    scanf(" %[^\n]", driverContact);
+
+    printf("Enter Bus Registration Date (DD-MM-YYYY): ");
+    scanf(" %[^\n]", regDate);
+
+    printf("Enter Bus Type (AC / Non-AC / Double Decker): ");
+    scanf(" %[^\n]", busType);
+
+    FILE *fp = fopen("registered_buses.txt", "a");
+
+    if (fp == NULL)
+    {
+        printf("Could not save bus details. Please try again.\n");
+        return;
+    }
+
+    fprintf(fp, "Owner Username    : %s\n", ownerUsername);
+    fprintf(fp, "Bus Number        : %s\n", busNumber);
+    fprintf(fp, "Driver Name       : %s\n", driverName);
+    fprintf(fp, "Driver Contact    : %s\n", driverContact);
+    fprintf(fp, "Registration Date : %s\n", regDate);
+    fprintf(fp, "Bus Type          : %s\n", busType);
+    fprintf(fp, "--------------------------------------------\n");
+
+    fclose(fp);
+
+    printf("\nBus details saved successfully!\n");
 }
 
 int main()
@@ -150,11 +416,43 @@ int main()
             
         }
 
-        else if (choice == 2)// feature 2
+        else if (choice == 2)// feature 2 - Owner Register / Login, then Register Bus
         {
-            // ===================================
-            // PASTE ALL OF FEATURE 2 CODE HERE
-            // ===================================
+            int ownerChoice;
+            char loggedInUser[length];
+            int loggedIn = 0;
+
+            printf("\n===== BUS OWNER PORTAL =====\n");
+            printf("1. Login\n");
+            printf("2. Create New Owner Account\n");
+            printf("Enter your choice: ");
+            scanf("%d", &ownerChoice);
+            clearInputBuffer();
+
+            if (ownerChoice == 1)
+            {
+                loggedIn = loginOwner(loggedInUser);
+            }
+            else if (ownerChoice == 2)
+            {
+                registerOwner();
+            }
+            else
+            {
+                printf("Invalid choice.\n");
+            }
+
+            if (loggedIn == 1)
+            {
+                printf("\n--------------------------------------------\n");
+                printf("You are now logged in as: %s\n", loggedInUser);
+                printf("--------------------------------------------\n");
+
+                // ===================================
+                // BUS REGISTRATION FORM
+                // ===================================
+                registerBusDetails(loggedInUser);
+            }
 
             printf("\nPress Enter to go back to the main menu...");
             getchar();
@@ -173,7 +471,27 @@ int main()
         }
         else if (choice == 4)
         {
-            //feature 4
+            //feature 4 - View Info (shows every registered bus)
+
+            FILE *viewFp = fopen("registered_buses.txt", "r");
+
+            if (viewFp == NULL)
+            {
+                printf("\nNo buses have been registered yet.\n");
+            }
+            else
+            {
+                printf("\n===== ALL REGISTERED BUSES =====\n\n");
+
+                char line[200];
+
+                while (fgets(line, sizeof(line), viewFp) != NULL)
+                {
+                    printf("%s", line);
+                }
+
+                fclose(viewFp);
+            }
             
             printf("\nPress Enter to go back to the main menu...");
             getchar();
