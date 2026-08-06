@@ -1,0 +1,11 @@
+Booking ID     : 30083
+Date/Time      : Thu Aug  6 15:28:03 2026
+Passenger Name : Akash
+From           : Mirpur 10
+To             : Mirpur 1
+Bus Company    : Achim Paribahan
+Route          : Mirpur 10 -> Mirpur 2 -> Sony Cinema Hall -> Mirpur 1
+Ticket Type    : Regular
+Seats Booked   : 3
+Total Fare     : 21 Taka
+--------------------------------------------

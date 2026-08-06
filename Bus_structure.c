@@ -3,10 +3,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <time.h>
 
 #define length 50
 #define companies 4
 #define stops 30
+#define WHOLE_BUS_FARE 5000   /* flat price for renting a whole bus - change as needed */
+
 void clearInputBuffer()
 {
     int c;
@@ -277,6 +280,204 @@ void registerBusDetails(char *ownerUsername)
     printf("\nBus details saved successfully!\n");
 }
 
+/* =========================================================
+   TICKET BOOKING (feature 3)
+   Lets a passenger search a route, pick a company, book
+   either a normal seat ticket or the whole bus, see an
+   invoice, confirm, and have the booking saved to
+   ticket_bookings.txt
+   ========================================================= */
+
+void bookTicket(char company[companies][length],
+                char route[companies][stops][length],
+                int totalstops[companies])
+{
+    char passengerName[length], from[length], to[length];
+    char student;
+
+    printf("\nEnter your name: ");
+    scanf(" %[^\n]", passengerName);
+
+    printf("From where do you want to travel? ");
+    scanf(" %[^\n]", from);
+
+    printf("To where do you want to go? ");
+    scanf(" %[^\n]", to);
+
+    printf("Are you a Student? (Y/N): ");
+    scanf(" %c", &student);
+    clearInputBuffer();
+
+    /* search every company for this route, same matching logic as Find Bus */
+    int matchCompany[companies];
+    int matchFromIndex[companies];
+    int matchToIndex[companies];
+    int matchFare[companies];
+    int matchCount = 0;
+
+    for (int i = 0; i < companies; i++)
+    {
+        int fromIndex = -1, toIndex = -1;
+
+        for (int j = 0; j < totalstops[i]; j++)
+        {
+            if (strcmp(route[i][j], from) == 0)
+                fromIndex = j;
+
+            if (strcmp(route[i][j], to) == 0)
+                toIndex = j;
+        }
+
+        if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex)
+        {
+            int fare = abs(toIndex - fromIndex) * 5;
+
+            if (student == 'Y' || student == 'y')
+                fare = fare / 2;
+
+            matchCompany[matchCount] = i;
+            matchFromIndex[matchCount] = fromIndex;
+            matchToIndex[matchCount] = toIndex;
+            matchFare[matchCount] = fare;
+            matchCount++;
+        }
+    }
+
+    if (matchCount == 0)
+    {
+        printf("\nNo buses run directly between %s and %s.\n", from, to);
+        return;
+    }
+
+    printf("\nAvailable Buses:\n");
+    for (int k = 0; k < matchCount; k++)
+        printf("%d. %-30s Fare: %d Taka (per seat)\n", k + 1, company[matchCompany[k]], matchFare[k]);
+
+    int selection = 0;
+    while (selection < 1 || selection > matchCount)
+    {
+        printf("Select a bus company (1-%d): ", matchCount);
+        scanf("%d", &selection);
+        clearInputBuffer();
+    }
+
+    int idx = selection - 1;
+    int companyIndex = matchCompany[idx];
+    int fromIndex = matchFromIndex[idx];
+    int toIndex = matchToIndex[idx];
+    int perSeatFare = matchFare[idx];
+
+    printf("\n1. Book a single/regular ticket\n");
+    printf("2. Book the whole bus\n");
+    int bookingType = 0;
+    while (bookingType != 1 && bookingType != 2)
+    {
+        printf("Enter your choice: ");
+        scanf("%d", &bookingType);
+        clearInputBuffer();
+    }
+
+    int quantity = 1;
+    int totalFare = 0;
+    char ticketType[20];
+
+    if (bookingType == 1)
+    {
+        do
+        {
+            printf("How many tickets do you want to book? ");
+            scanf("%d", &quantity);
+            clearInputBuffer();
+        } while (quantity < 1);
+
+        totalFare = perSeatFare * quantity;
+        strcpy(ticketType, "Regular");
+    }
+    else
+    {
+        quantity = 1;
+        totalFare = WHOLE_BUS_FARE;
+        strcpy(ticketType, "Whole Bus");
+    }
+
+    /* build the route path string, same direction logic as Find Bus */
+    char routePath[600] = "";
+    if (fromIndex < toIndex)
+    {
+        for (int k = fromIndex; k <= toIndex; k++)
+        {
+            strcat(routePath, route[companyIndex][k]);
+            if (k != toIndex)
+                strcat(routePath, " -> ");
+        }
+    }
+    else
+    {
+        for (int m = fromIndex; m >= toIndex; m--)
+        {
+            strcat(routePath, route[companyIndex][m]);
+            if (m != toIndex)
+                strcat(routePath, " -> ");
+        }
+    }
+
+    /* simple booking ID from the current time so each invoice is unique */
+    int bookingID = (int)(time(NULL) % 100000);
+    time_t now = time(NULL);
+    char bookingTime[64];
+    strcpy(bookingTime, ctime(&now));
+    bookingTime[strcspn(bookingTime, "\n")] = '\0'; /* strip trailing newline from ctime */
+
+    printf("\n============================================\n");
+    printf("               TICKET INVOICE\n");
+    printf("============================================\n");
+    printf("Booking ID     : %05d\n", bookingID);
+    printf("Date/Time      : %s\n", bookingTime);
+    printf("Passenger Name : %s\n", passengerName);
+    printf("Bus Company    : %s\n", company[companyIndex]);
+    printf("Route          : %s\n", routePath);
+    printf("Ticket Type    : %s\n", ticketType);
+    if (bookingType == 1)
+        printf("Seats Booked   : %d\n", quantity);
+    printf("Total Fare     : %d Taka\n", totalFare);
+    printf("============================================\n");
+
+    char confirm;
+    printf("Confirm this booking? (Y/N): ");
+    scanf(" %c", &confirm);
+    clearInputBuffer();
+
+    if (confirm != 'Y' && confirm != 'y')
+    {
+        printf("\nBooking cancelled. Nothing was saved.\n");
+        return;
+    }
+
+    FILE *fp = fopen("ticket_bookings.txt", "a");
+    if (fp == NULL)
+    {
+        printf("\nCould not save your booking. Please try again.\n");
+        return;
+    }
+
+    fprintf(fp, "Booking ID     : %05d\n", bookingID);
+    fprintf(fp, "Date/Time      : %s\n", bookingTime);
+    fprintf(fp, "Passenger Name : %s\n", passengerName);
+    fprintf(fp, "From           : %s\n", from);
+    fprintf(fp, "To             : %s\n", to);
+    fprintf(fp, "Bus Company    : %s\n", company[companyIndex]);
+    fprintf(fp, "Route          : %s\n", routePath);
+    fprintf(fp, "Ticket Type    : %s\n", ticketType);
+    if (bookingType == 1)
+        fprintf(fp, "Seats Booked   : %d\n", quantity);
+    fprintf(fp, "Total Fare     : %d Taka\n", totalFare);
+    fprintf(fp, "--------------------------------------------\n");
+
+    fclose(fp);
+
+    printf("\nBooking confirmed! Your invoice has been saved.\n");
+}
+
 int main()
 {
     int choice;
@@ -462,8 +663,9 @@ int main()
         else if (choice == 3)
         {
             // ===================================
-            // PASTE ALL OF FEATURE 3 CODE HERE
+            // FEATURE 3 - BOOK TICKET
             // ===================================
+            bookTicket(company, route, totalstops);
 
             printf("\nPress Enter to go back to the main menu...");
             getchar();
