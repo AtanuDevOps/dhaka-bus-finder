@@ -141,9 +141,13 @@ void hashPassword(const char *password, char *hashOut)
 /* =========================================================
    OWNER REGISTER / LOGIN SYSTEM
    Stored in owners.txt as:  username  passwordHash  ownerName
+   This file is what lets an owner log back in at any time -
+   their account is saved here permanently the moment they sign up.
    ========================================================= */
 
-void registerOwner()
+/* Returns 1 on success and fills loggedInUser (auto-login),
+   returns 0 if the account could not be created */
+int registerOwner(char *loggedInUser)
 {
     char username[length], password[length], name[length];
     char hashedPassword[33];
@@ -165,7 +169,7 @@ void registerOwner()
             {
                 printf("This username is already taken. Please try logging in instead.\n");
                 fclose(checkFile);
-                return;
+                return 0;
             }
         }
         fclose(checkFile);
@@ -184,13 +188,18 @@ void registerOwner()
     if (fp == NULL)
     {
         printf("Could not save your account. Please try again.\n");
-        return;
+        return 0;
     }
 
     fprintf(fp, "%s %s %s\n", username, hashedPassword, name);
     fclose(fp);
 
-    printf("\nAccount created successfully! You can now log in.\n");
+    printf("\nAccount created and saved successfully! Logging you in...\n");
+
+    /* auto-login right after signup, since the account is now
+       permanently saved in owners.txt and can be logged into anytime */
+    strcpy(loggedInUser, username);
+    return 1;
 }
 
 /* Returns 1 and fills loggedInUser if login succeeds, otherwise returns 0 */
@@ -236,7 +245,19 @@ int loginOwner(char *loggedInUser)
 
 /* =========================================================
    BUS REGISTRATION (saved by logged-in owners)
-   Stored in registered_buses.txt in a simple readable format
+
+   Every registered bus is saved to TWO files:
+
+   1. registered_buses.txt - a human-readable, labeled block
+      per bus. Used by "View Info" (choice 4) to display
+      everything nicely on screen.
+
+   2. bus_records.txt - ONE line per bus, fields separated by
+      the "|" character. This format is much easier for code
+      to search, edit, or delete a single bus later (for
+      future Update Bus Info / Delete Bus Info features),
+      since a human-readable multi-line block is awkward to
+      rewrite programmatically.
    ========================================================= */
 
 void registerBusDetails(char *ownerUsername)
@@ -259,6 +280,7 @@ void registerBusDetails(char *ownerUsername)
     printf("Enter Bus Type (AC / Non-AC / Double Decker): ");
     scanf(" %[^\n]", busType);
 
+    /* ---- Save 1: human-readable block (for View Info) ---- */
     FILE *fp = fopen("registered_buses.txt", "a");
 
     if (fp == NULL)
@@ -276,6 +298,20 @@ void registerBusDetails(char *ownerUsername)
     fprintf(fp, "--------------------------------------------\n");
 
     fclose(fp);
+
+    /* ---- Save 2: single-line record (for future update/delete) ---- */
+    FILE *recFp = fopen("bus_records.txt", "a");
+
+    if (recFp == NULL)
+    {
+        printf("Bus details saved, but the update-ready record file could not be created.\n");
+        return;
+    }
+
+    fprintf(recFp, "%s|%s|%s|%s|%s|%s\n",
+            ownerUsername, busNumber, driverName, driverContact, regDate, busType);
+
+    fclose(recFp);
 
     printf("\nBus details saved successfully!\n");
 }
@@ -636,7 +672,7 @@ int main()
             }
             else if (ownerChoice == 2)
             {
-                registerOwner();
+                loggedIn = registerOwner(loggedInUser);
             }
             else
             {
