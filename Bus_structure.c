@@ -321,11 +321,11 @@ void registerBusDetails(char *ownerUsername)
 }
 
 /* =========================================================
-   DRIVER & HELPER INFORMATION  (NEW)
+   DRIVER & HELPER INFORMATION
 
-   Lets a logged-in owner attach a driver AND a helper record
-   to a specific bus number. Saved to TWO files, same pattern
-   as bus registration above:
+   Lets a logged-in owner (from the Bus Owner Portal in option 2)
+   attach a driver AND a helper record to a specific bus number.
+   Saved to TWO files, same pattern as bus registration above:
 
    1. driver_helper.txt - human-readable block per entry.
       Used by "View Driver & Helper Info" so ANYONE (owner or
@@ -722,7 +722,6 @@ int main()
         printf("3. Book Ticket\n");
         printf("4. View Info\n");
         printf("5. Send SOS\n");
-        printf("6. Driver & Helper Info\n");
         printf("0. Exit\n");
 
         printf("Enter your choice: ");
@@ -846,9 +845,28 @@ int main()
                 printf("--------------------------------------------\n");
 
                 // ===================================
-                // BUS REGISTRATION FORM
+                // CHOOSE WHAT TO REGISTER
                 // ===================================
-                registerBusDetails(loggedInUser);
+                int regChoice;
+
+                printf("\n1. Enter Bus Detail\n");
+                printf("2. Enter Driver & Helper Detail\n");
+                printf("Enter your choice: ");
+                scanf("%d", &regChoice);
+                clearInputBuffer();
+
+                if (regChoice == 1)
+                {
+                    registerBusDetails(loggedInUser);
+                }
+                else if (regChoice == 2)
+                {
+                    addDriverHelperInfo(loggedInUser);
+                }
+                else
+                {
+                    printf("Invalid choice.\n");
+                }
             }
 
             printf("\nPress Enter to go back to the main menu...");
@@ -873,28 +891,48 @@ int main()
         else if (choice == 4)
         {
             clearscreen();
-            //feature 4 - View Info (shows every registered bus)
+            //feature 4 - View Info (Registered Buses + Driver & Helper Info)
 
-            FILE *viewFp = fopen("registered_buses.txt", "r");
+            int viewChoice;
 
-            if (viewFp == NULL)
+            printf("\n===== VIEW INFO =====\n");
+            printf("1. View Registered Buses\n");
+            printf("2. View Driver & Helper Info\n");
+            printf("Enter your choice: ");
+            scanf("%d", &viewChoice);
+            clearInputBuffer();
+
+            if (viewChoice == 1)
             {
-                printf("\nNo buses have been registered yet.\n");
+                FILE *viewFp = fopen("registered_buses.txt", "r");
+
+                if (viewFp == NULL)
+                {
+                    printf("\nNo buses have been registered yet.\n");
+                }
+                else
+                {
+                    printf("\n===== ALL REGISTERED BUSES =====\n\n");
+
+                    char line[200];
+
+                    while (fgets(line, sizeof(line), viewFp) != NULL)
+                    {
+                        printf("%s", line);
+                    }
+
+                    fclose(viewFp);
+                }
+            }
+            else if (viewChoice == 2)
+            {
+                viewDriverHelperInfo();
             }
             else
             {
-                printf("\n===== ALL REGISTERED BUSES =====\n\n");
-
-                char line[200];
-
-                while (fgets(line, sizeof(line), viewFp) != NULL)
-                {
-                    printf("%s", line);
-                }
-
-                fclose(viewFp);
+                printf("Invalid choice.\n");
             }
-            
+
             printf("\nPress Enter to go back to the main menu...");
             getchar();
             clearscreen();
@@ -949,69 +987,6 @@ int main()
             printf("\nPress Enter to go back to the main menu..");
             getchar();
             clearscreen();
-        }
-
-        else if (choice == 6)
-        {
-            // ===================================
-            // FEATURE 6 (NEW) - DRIVER & HELPER INFO
-            // Adding requires an owner login, same as
-            // Register Bus. Viewing is open to anyone -
-            // no login required - so passengers can also
-            // check who is driving/helping on a bus.
-            // ===================================
-
-            int dhChoice;
-
-            printf("\n===== DRIVER & HELPER INFO =====\n");
-            printf("1. Add Driver & Helper Info (Bus Owner Login Required)\n");
-            printf("2. View Driver & Helper Info (Anyone)\n");
-            printf("Enter your choice: ");
-            scanf("%d", &dhChoice);
-            clearInputBuffer();
-
-            if (dhChoice == 1)
-            {
-                int ownerChoice2;
-                char loggedInUser2[length];
-                int loggedIn2 = 0;
-
-                printf("\n===== BUS OWNER PORTAL =====\n");
-                printf("1. Login\n");
-                printf("2. Create New Owner Account\n");
-                printf("Enter your choice: ");
-                scanf("%d", &ownerChoice2);
-                clearInputBuffer();
-
-                if (ownerChoice2 == 1)
-                {
-                    loggedIn2 = loginOwner(loggedInUser2);
-                }
-                else if (ownerChoice2 == 2)
-                {
-                    loggedIn2 = registerOwner(loggedInUser2);
-                }
-                else
-                {
-                    printf("Invalid choice.\n");
-                }
-
-                if (loggedIn2 == 1)
-                {
-                    addDriverHelperInfo(loggedInUser2);
-                }
-            }
-            else if (dhChoice == 2)
-            {
-                viewDriverHelperInfo();
-            }
-            else
-            {
-                printf("Invalid choice.\n");
-            }
-
-            printf("\nPress Enter to go back to the main menu...");
-            getchar();
         }
 
         else if (choice == 0)
