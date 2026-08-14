@@ -16,6 +16,10 @@ void clearInputBuffer()
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
+void clearscreen(){
+    printf("\e[1;1H\e[2J");
+}
+
 /* =========================================================
    MD5 HASHING (written from the MD5 algorithm specification)
    Used to hash owner passwords before saving them to a file,
@@ -726,6 +730,7 @@ int main()
 
         if (choice == 1) // feature 1
         {
+            clearscreen();
 
             printf("\nWhere do you want to go?\n");
             scanf(" %[^\n]", to);
@@ -803,11 +808,13 @@ int main()
             
             printf("\nPress Enter to go back to the main menu...");
             getchar(); // Removes the '\n' left by scanf
+            clearscreen();
             
         }
 
         else if (choice == 2)// feature 2 - Owner Register / Login, then Register Bus
         {
+            clearscreen();
             int ownerChoice;
             char loggedInUser[length];
             int loggedIn = 0;
@@ -846,11 +853,13 @@ int main()
 
             printf("\nPress Enter to go back to the main menu...");
             getchar();
+            clearscreen();
             
         }
 
         else if (choice == 3)
         {
+            clearscreen();
             // ===================================
             // FEATURE 3 - BOOK TICKET
             // ===================================
@@ -858,10 +867,12 @@ int main()
 
             printf("\nPress Enter to go back to the main menu...");
             getchar();
+            clearscreen();
             
         }
         else if (choice == 4)
         {
+            clearscreen();
             //feature 4 - View Info (shows every registered bus)
 
             FILE *viewFp = fopen("registered_buses.txt", "r");
@@ -886,9 +897,11 @@ int main()
             
             printf("\nPress Enter to go back to the main menu...");
             getchar();
+            clearscreen();
         }
         else if (choice == 5)
         {
+            clearscreen();
             //feature 5 - Send SOS
 
             if (selectedBus == -1)
@@ -935,6 +948,7 @@ int main()
             
             printf("\nPress Enter to go back to the main menu..");
             getchar();
+            clearscreen();
         }
 
         else if (choice == 6)
