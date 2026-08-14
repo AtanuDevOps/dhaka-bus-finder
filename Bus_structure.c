@@ -317,6 +317,158 @@ void registerBusDetails(char *ownerUsername)
 }
 
 /* =========================================================
+   DRIVER & HELPER INFORMATION  (NEW)
+
+   Lets a logged-in owner attach a driver AND a helper record
+   to a specific bus number. Saved to TWO files, same pattern
+   as bus registration above:
+
+   1. driver_helper.txt - human-readable block per entry.
+      Used by "View Driver & Helper Info" so ANYONE (owner or
+      passenger, no login required) can look up who is driving
+      / helping on a given bus.
+
+   2. driver_helper_records.txt - ONE line per entry, fields
+      separated by "|", for easy future search/update/delete.
+   ========================================================= */
+
+void addDriverHelperInfo(char *ownerUsername)
+{
+    char busNumber[length];
+    char driverName[length], driverContact[length], driverLicense[length];
+    char helperName[length], helperContact[length];
+
+    printf("\n----- Add Driver & Helper Info -----\n");
+
+    printf("Enter Bus Number this info belongs to: ");
+    scanf(" %[^\n]", busNumber);
+
+    printf("Enter Driver Name: ");
+    scanf(" %[^\n]", driverName);
+
+    printf("Enter Driver Contact Number: ");
+    scanf(" %[^\n]", driverContact);
+
+    printf("Enter Driver License Number: ");
+    scanf(" %[^\n]", driverLicense);
+
+    printf("Enter Helper Name: ");
+    scanf(" %[^\n]", helperName);
+
+    printf("Enter Helper Contact Number: ");
+    scanf(" %[^\n]", helperContact);
+
+    /* ---- Save 1: human-readable block (for viewing) ---- */
+    FILE *fp = fopen("driver_helper.txt", "a");
+
+    if (fp == NULL)
+    {
+        printf("Could not save driver & helper details. Please try again.\n");
+        return;
+    }
+
+    fprintf(fp, "Added By (Owner)  : %s\n", ownerUsername);
+    fprintf(fp, "Bus Number        : %s\n", busNumber);
+    fprintf(fp, "Driver Name       : %s\n", driverName);
+    fprintf(fp, "Driver Contact    : %s\n", driverContact);
+    fprintf(fp, "Driver License    : %s\n", driverLicense);
+    fprintf(fp, "Helper Name       : %s\n", helperName);
+    fprintf(fp, "Helper Contact    : %s\n", helperContact);
+    fprintf(fp, "--------------------------------------------\n");
+
+    fclose(fp);
+
+    /* ---- Save 2: single-line record (for future search/update/delete) ---- */
+    FILE *recFp = fopen("driver_helper_records.txt", "a");
+
+    if (recFp == NULL)
+    {
+        printf("Driver & helper details saved, but the record file could not be created.\n");
+        return;
+    }
+
+    fprintf(recFp, "%s|%s|%s|%s|%s|%s|%s\n",
+            ownerUsername, busNumber, driverName, driverContact,
+            driverLicense, helperName, helperContact);
+
+    fclose(recFp);
+
+    printf("\nDriver & Helper details saved successfully!\n");
+}
+
+/* Anyone (no login needed) can view all saved driver & helper info,
+   or filter it down to just one bus number. */
+void viewDriverHelperInfo()
+{
+    FILE *fp = fopen("driver_helper.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("\nNo driver & helper information has been added yet.\n");
+        return;
+    }
+
+    int filterChoice;
+    char searchBus[length];
+
+    printf("\n1. View ALL driver & helper info\n");
+    printf("2. Search by Bus Number\n");
+    printf("Enter your choice: ");
+    scanf("%d", &filterChoice);
+    clearInputBuffer();
+
+    if (filterChoice == 2)
+    {
+        printf("Enter Bus Number to search: ");
+        scanf(" %[^\n]", searchBus);
+    }
+
+    char line[200];
+    char currentBlock[1000];
+    currentBlock[0] = '\0';
+    int blockHasBus = 0;
+    int found = 0;
+
+    if (filterChoice == 2)
+    {
+        /* Read block by block (each block ends with the dashed line)
+           and only print blocks whose Bus Number line matches. */
+        while (fgets(line, sizeof(line), fp) != NULL)
+        {
+            strcat(currentBlock, line);
+
+            if (strncmp(line, "Bus Number", 10) == 0 && strstr(line, searchBus) != NULL)
+                blockHasBus = 1;
+
+            if (strncmp(line, "----", 4) == 0)
+            {
+                if (blockHasBus)
+                {
+                    printf("%s", currentBlock);
+                    found = 1;
+                }
+                currentBlock[0] = '\0';
+                blockHasBus = 0;
+            }
+        }
+
+        if (!found)
+            printf("\nNo driver/helper info found for bus \"%s\".\n", searchBus);
+    }
+    else
+    {
+        printf("\n===== ALL DRIVER & HELPER INFO =====\n\n");
+
+        while (fgets(line, sizeof(line), fp) != NULL)
+        {
+            printf("%s", line);
+        }
+    }
+
+    fclose(fp);
+}
+
+/* =========================================================
    TICKET BOOKING (feature 3)
    Lets a passenger search a route, pick a company, book
    either a normal seat ticket or the whole bus, see an
@@ -566,6 +718,7 @@ int main()
         printf("3. Book Ticket\n");
         printf("4. View Info\n");
         printf("5. Send SOS\n");
+        printf("6. Driver & Helper Info\n");
         printf("0. Exit\n");
 
         printf("Enter your choice: ");
@@ -781,6 +934,69 @@ int main()
             }
             
             printf("\nPress Enter to go back to the main menu..");
+            getchar();
+        }
+
+        else if (choice == 6)
+        {
+            // ===================================
+            // FEATURE 6 (NEW) - DRIVER & HELPER INFO
+            // Adding requires an owner login, same as
+            // Register Bus. Viewing is open to anyone -
+            // no login required - so passengers can also
+            // check who is driving/helping on a bus.
+            // ===================================
+
+            int dhChoice;
+
+            printf("\n===== DRIVER & HELPER INFO =====\n");
+            printf("1. Add Driver & Helper Info (Bus Owner Login Required)\n");
+            printf("2. View Driver & Helper Info (Anyone)\n");
+            printf("Enter your choice: ");
+            scanf("%d", &dhChoice);
+            clearInputBuffer();
+
+            if (dhChoice == 1)
+            {
+                int ownerChoice2;
+                char loggedInUser2[length];
+                int loggedIn2 = 0;
+
+                printf("\n===== BUS OWNER PORTAL =====\n");
+                printf("1. Login\n");
+                printf("2. Create New Owner Account\n");
+                printf("Enter your choice: ");
+                scanf("%d", &ownerChoice2);
+                clearInputBuffer();
+
+                if (ownerChoice2 == 1)
+                {
+                    loggedIn2 = loginOwner(loggedInUser2);
+                }
+                else if (ownerChoice2 == 2)
+                {
+                    loggedIn2 = registerOwner(loggedInUser2);
+                }
+                else
+                {
+                    printf("Invalid choice.\n");
+                }
+
+                if (loggedIn2 == 1)
+                {
+                    addDriverHelperInfo(loggedInUser2);
+                }
+            }
+            else if (dhChoice == 2)
+            {
+                viewDriverHelperInfo();
+            }
+            else
+            {
+                printf("Invalid choice.\n");
+            }
+
+            printf("\nPress Enter to go back to the main menu...");
             getchar();
         }
 
