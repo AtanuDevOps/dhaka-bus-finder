@@ -8,7 +8,7 @@
 #define length 50
 #define companies 4
 #define stops 30
-#define WHOLE_BUS_FARE 5000   /* flat price for renting a whole bus - change as needed */
+#define WHOLE_BUS_FARE 5000   
 
 void clearInputBuffer()
 {
@@ -21,11 +21,7 @@ void clearscreen(){
 }
 
 /* =========================================================
-   MD5 HASHING (written from the MD5 algorithm specification)
-   Used to hash owner passwords before saving them to a file,
-   so plain-text passwords are never stored on disk.
-   Note: this simple implementation assumes a little-endian
-   system (which covers normal Windows/PC machines).
+   MD5 HASHING 
    ========================================================= */
 
 uint32_t leftrotate(uint32_t x, uint32_t c)
@@ -35,7 +31,7 @@ uint32_t leftrotate(uint32_t x, uint32_t c)
 
 void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest)
 {
-    /* per-round left-shift amounts, as defined by the MD5 algorithm */
+   
     uint32_t s[] = {
         7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
         5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
@@ -43,8 +39,7 @@ void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest)
         6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
     };
 
-    /* K constants: built from sin(), as defined by the MD5 algorithm,
-       instead of typing out 64 long magic numbers by hand */
+   
     static uint32_t K[64];
     static int built = 0;
 
@@ -60,19 +55,19 @@ void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest)
     uint32_t h2 = 0x98badcfe;
     uint32_t h3 = 0x10325476;
 
-    /* pad the message so its length in bits is 448 (mod 512) */
+    
     size_t newLenBits;
     for (newLenBits = initial_len * 8 + 1; newLenBits % 512 != 448; newLenBits++);
     size_t newLen = newLenBits / 8;
 
     uint8_t *msg = calloc(newLen + 8, 1);
     memcpy(msg, initial_msg, initial_len);
-    msg[initial_len] = 0x80; /* append a single '1' bit */
+    msg[initial_len] = 0x80; 
 
     uint32_t bitsLen = (uint32_t)(initial_len * 8);
     memcpy(msg + newLen, &bitsLen, 4);
 
-    /* process the message in 512-bit (64-byte) chunks */
+    
     for (size_t offset = 0; offset < newLen; offset += 64)
     {
         uint32_t *w = (uint32_t *)(msg + offset);
@@ -125,7 +120,7 @@ void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest)
     memcpy(digest + 12, &h3, 4);
 }
 
-/* Converts the 16-byte MD5 digest into a readable 32-character hex string */
+
 void md5ToHexString(uint8_t *digest, char *hexStr)
 {
     for (int i = 0; i < 16; i++)
@@ -134,7 +129,7 @@ void md5ToHexString(uint8_t *digest, char *hexStr)
     hexStr[32] = '\0';
 }
 
-/* Hashes a plain-text password and stores the result (32 hex chars) in hashOut */
+
 void hashPassword(const char *password, char *hashOut)
 {
     uint8_t digest[16];
@@ -144,13 +139,9 @@ void hashPassword(const char *password, char *hashOut)
 
 /* =========================================================
    OWNER REGISTER / LOGIN SYSTEM
-   Stored in owners.txt as:  username  passwordHash  ownerName
-   This file is what lets an owner log back in at any time -
-   their account is saved here permanently the moment they sign up.
    ========================================================= */
 
-/* Returns 1 on success and fills loggedInUser (auto-login),
-   returns 0 if the account could not be created */
+
 int registerOwner(char *loggedInUser)
 {
     char username[length], password[length], name[length];
@@ -159,7 +150,7 @@ int registerOwner(char *loggedInUser)
     printf("\nChoose a username: ");
     scanf("%s", username);
 
-    /* check if username is already taken */
+   
     FILE *checkFile = fopen("owners.txt", "r");
     if (checkFile != NULL)
     {
@@ -200,13 +191,12 @@ int registerOwner(char *loggedInUser)
 
     printf("\nAccount created and saved successfully! Logging you in...\n");
 
-    /* auto-login right after signup, since the account is now
-       permanently saved in owners.txt and can be logged into anytime */
+ 
     strcpy(loggedInUser, username);
     return 1;
 }
 
-/* Returns 1 and fills loggedInUser if login succeeds, otherwise returns 0 */
+
 int loginOwner(char *loggedInUser)
 {
     char username[length], password[length];
@@ -248,20 +238,7 @@ int loginOwner(char *loggedInUser)
 }
 
 /* =========================================================
-   BUS REGISTRATION (saved by logged-in owners)
-
-   Every registered bus is saved to TWO files:
-
-   1. registered_buses.txt - a human-readable, labeled block
-      per bus. Used by "View Info" (choice 4) to display
-      everything nicely on screen.
-
-   2. bus_records.txt - ONE line per bus, fields separated by
-      the "|" character. This format is much easier for code
-      to search, edit, or delete a single bus later (for
-      future Update Bus Info / Delete Bus Info features),
-      since a human-readable multi-line block is awkward to
-      rewrite programmatically.
+   BUS REGISTRATION 
    ========================================================= */
 
 void registerBusDetails(char *ownerUsername)
@@ -284,7 +261,7 @@ void registerBusDetails(char *ownerUsername)
     printf("Enter Bus Type (AC / Non-AC / Double Decker): ");
     scanf(" %[^\n]", busType);
 
-    /* ---- Save 1: human-readable block (for View Info) ---- */
+   
     FILE *fp = fopen("registered_buses.txt", "a");
 
     if (fp == NULL)
@@ -303,7 +280,7 @@ void registerBusDetails(char *ownerUsername)
 
     fclose(fp);
 
-    /* ---- Save 2: single-line record (for future update/delete) ---- */
+    
     FILE *recFp = fopen("bus_records.txt", "a");
 
     if (recFp == NULL)
@@ -322,18 +299,6 @@ void registerBusDetails(char *ownerUsername)
 
 /* =========================================================
    DRIVER & HELPER INFORMATION
-
-   Lets a logged-in owner (from the Bus Owner Portal in option 2)
-   attach a driver AND a helper record to a specific bus number.
-   Saved to TWO files, same pattern as bus registration above:
-
-   1. driver_helper.txt - human-readable block per entry.
-      Used by "View Driver & Helper Info" so ANYONE (owner or
-      passenger, no login required) can look up who is driving
-      / helping on a given bus.
-
-   2. driver_helper_records.txt - ONE line per entry, fields
-      separated by "|", for easy future search/update/delete.
    ========================================================= */
 
 void addDriverHelperInfo(char *ownerUsername)
@@ -362,7 +327,7 @@ void addDriverHelperInfo(char *ownerUsername)
     printf("Enter Helper Contact Number: ");
     scanf(" %[^\n]", helperContact);
 
-    /* ---- Save 1: human-readable block (for viewing) ---- */
+    
     FILE *fp = fopen("driver_helper.txt", "a");
 
     if (fp == NULL)
@@ -382,7 +347,7 @@ void addDriverHelperInfo(char *ownerUsername)
 
     fclose(fp);
 
-    /* ---- Save 2: single-line record (for future search/update/delete) ---- */
+    
     FILE *recFp = fopen("driver_helper_records.txt", "a");
 
     if (recFp == NULL)
@@ -400,8 +365,7 @@ void addDriverHelperInfo(char *ownerUsername)
     printf("\nDriver & Helper details saved successfully!\n");
 }
 
-/* Anyone (no login needed) can view all saved driver & helper info,
-   or filter it down to just one bus number. */
+
 void viewDriverHelperInfo()
 {
     FILE *fp = fopen("driver_helper.txt", "r");
@@ -435,8 +399,7 @@ void viewDriverHelperInfo()
 
     if (filterChoice == 2)
     {
-        /* Read block by block (each block ends with the dashed line)
-           and only print blocks whose Bus Number line matches. */
+   
         while (fgets(line, sizeof(line), fp) != NULL)
         {
             strcat(currentBlock, line);
@@ -474,10 +437,6 @@ void viewDriverHelperInfo()
 
 /* =========================================================
    TICKET BOOKING (feature 3)
-   Lets a passenger search a route, pick a company, book
-   either a normal seat ticket or the whole bus, see an
-   invoice, confirm, and have the booking saved to
-   ticket_bookings.txt
    ========================================================= */
 
 void bookTicket(char company[companies][length],
@@ -500,7 +459,7 @@ void bookTicket(char company[companies][length],
     scanf(" %c", &student);
     clearInputBuffer();
 
-    /* search every company for this route, same matching logic as Find Bus */
+   
     int matchCompany[companies];
     int matchFromIndex[companies];
     int matchToIndex[companies];
@@ -592,7 +551,7 @@ void bookTicket(char company[companies][length],
         strcpy(ticketType, "Whole Bus");
     }
 
-    /* build the route path string, same direction logic as Find Bus */
+    
     char routePath[600] = "";
     if (fromIndex < toIndex)
     {
@@ -613,12 +572,12 @@ void bookTicket(char company[companies][length],
         }
     }
 
-    /* simple booking ID from the current time so each invoice is unique */
+    
     int bookingID = (int)(time(NULL) % 100000);
     time_t now = time(NULL);
     char bookingTime[64];
     strcpy(bookingTime, ctime(&now));
-    bookingTime[strcspn(bookingTime, "\n")] = '\0'; /* strip trailing newline from ctime */
+    bookingTime[strcspn(bookingTime, "\n")] = '\0'; 
 
     printf("\n============================================\n");
     printf("               TICKET INVOICE\n");
@@ -806,7 +765,7 @@ int main()
             }
             
             printf("\nPress Enter to go back to the main menu...");
-            getchar(); // Removes the '\n' left by scanf
+            getchar(); 
             clearscreen();
             
         }
@@ -844,9 +803,7 @@ int main()
                 printf("You are now logged in as: %s\n", loggedInUser);
                 printf("--------------------------------------------\n");
 
-                // ===================================
-                // CHOOSE WHAT TO REGISTER
-                // ===================================
+
                 int regChoice;
 
                 printf("\n1. Enter Bus Detail\n");
